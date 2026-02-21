@@ -1,0 +1,21 @@
+# Entornos Virtuales (¡Muy pesado para subir!)
+.venv/
+venv/
+env/
+
+# Variables de Entorno (¡NUNCA SUBIR EL .ENV POR SEGURIDAD!)
+.env
+
+# Archivos cacheados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de base de datos local (por si alguna vez usas SQLite)
+*.sqlite3
+*.db
+
+# Logs y archivos del sistema operativo
+*.log
+.DS_Store
+Thumbs.db
