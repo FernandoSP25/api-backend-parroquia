@@ -120,11 +120,13 @@ class GrupoService:
                 "confirmantes": confs_en_grupo
             })
 
-            pool_confirmantes = [item for item in pool_sin_asignar if item["tipo"] == "CONFIRMANTE"]
-            pool_catequistas = [item for item in pool_sin_asignar if item["tipo"] == "CATEQUISTA"]
+        # ========================================================
+        # ✅ ALINEADO A LA IZQUIERDA - TOTALMENTE FUERA DEL FOR
+        # ========================================================
+        pool_confirmantes = [item for item in pool_sin_asignar if item["tipo"] == "CONFIRMANTE"]
+        pool_catequistas = [item for item in pool_sin_asignar if item["tipo"] == "CATEQUISTA"]
 
         return {
-        
             "sin_asignar_confirmantes": pool_confirmantes,
             "sin_asignar_catequistas": pool_catequistas,
             "grupos": lista_grupos
