@@ -27,7 +27,8 @@ from app.routers import (
     anuncios,
     inscripciones,
     admin,
-    qr_codes
+    qr_codes,
+    anios_catequeticos
 )
 
 from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTAR ESTO
@@ -103,3 +104,4 @@ app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(grupos.router, prefix=settings.API_V1_STR)
 app.include_router(eventos.router, prefix=settings.API_V1_STR)
 app.include_router(qr_codes.router, prefix=settings.API_V1_STR)
+app.include_router(anios_catequeticos.router, prefix=settings.API_V1_STR)
