@@ -12,7 +12,6 @@ from app.routers import (
     auth, 
     usuarios, 
     tipo_evento, 
-    tipos_qr, 
     tipos_telefono,
     catequistas,   
     confirmantes,  
@@ -27,7 +26,6 @@ from app.routers import (
     anuncios,
     inscripciones,
     admin,
-    qr_codes,
     anios_catequeticos
 )
 
@@ -48,11 +46,12 @@ origins = [
     "http://localhost:3000", # El puerto de tu Next.js
     "http://127.0.0.1:3000",
     "http://192.168.1.4:3000",
+    "https://confirmacion-sjmv.vercel.app" 
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"], # Permitir todos los métodos (GET, POST, etc.)
     allow_headers=["*"], # Permitir todos los headers (Authorization, etc.)
@@ -89,7 +88,6 @@ def root():
 
 
 app.include_router(tipo_evento.router, prefix=settings.API_V1_STR)
-app.include_router(tipos_qr.router, prefix=settings.API_V1_STR)
 app.include_router(tipos_telefono.router, prefix=settings.API_V1_STR)
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(usuarios.router, prefix=settings.API_V1_STR)
@@ -103,6 +101,5 @@ app.include_router(inscripciones.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(grupos.router, prefix=settings.API_V1_STR)
 app.include_router(eventos.router, prefix=settings.API_V1_STR)
-app.include_router(qr_codes.router, prefix=settings.API_V1_STR)
 app.include_router(anios_catequeticos.router, prefix=settings.API_V1_STR)
 app.include_router(asistencias.router, prefix=settings.API_V1_STR)

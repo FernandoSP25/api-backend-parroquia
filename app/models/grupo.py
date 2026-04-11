@@ -39,5 +39,3 @@ class Grupo(Base):
     # 4. Catequistas asignados (Tabla intermedia)
     catequistas_asignados = relationship("CatequistaGrupo", back_populates="grupo")
     
-    # 5. QRs vinculados al grupo
-    qrs = relationship("QrCode", back_populates="grupo")

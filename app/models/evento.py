@@ -40,4 +40,3 @@ class Evento(Base):
     
     # Relación con asistencias y QRs
     asistencias = relationship("Asistencia", back_populates="evento")
-    qrs = relationship("QrCode", back_populates="evento")

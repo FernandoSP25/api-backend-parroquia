@@ -9,9 +9,4 @@ from app.models.tipo_evento import TipoEvento
 from app.models.usuario import Usuario
 from app.models.evento import Evento
 
-# NUEVOS MODELOS (Asegúrate de que los archivos existan en /models)
-from app.models.tipo_qr import TipoQr 
-from app.models.qr_code import QrCode
-from app.models.qr_uso_log import QrUsoLog
-
-# ... cualquier otro modelo adicional
+from app.models.estado_asistencia import EstadoAsistencia

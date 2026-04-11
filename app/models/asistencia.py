@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Text, ForeignKey, TIMESTAMP
+from sqlalchemy import Column, Integer, Text, ForeignKey, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -12,16 +12,17 @@ class Asistencia(Base):
     
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
     evento_id = Column(UUID(as_uuid=True), ForeignKey("eventos.id", ondelete="CASCADE"), nullable=False)
-    qr_id = Column(UUID(as_uuid=True), ForeignKey("qr_codes.id"), nullable=True)
-    registrada_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
+    
+    # 3 = "FALTA" por defecto (según insertamos en el script SQL)
+    estado_id = Column(Integer, ForeignKey("estados_asistencia.id"), nullable=False, default=3) 
     
     fecha = Column(TIMESTAMP, server_default=func.now())
-    metodo = Column(String(20), default='QR') # 'QR', 'MANUAL'
     observaciones = Column(Text, nullable=True)
+    registrada_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
     ip_address = Column(INET, nullable=True)
 
     # Relaciones
     usuario = relationship("Usuario", foreign_keys=[usuario_id], back_populates="asistencias")
     evento = relationship("Evento", back_populates="asistencias")
-    qr = relationship("QrCode")
     registrador = relationship("Usuario", foreign_keys=[registrada_por])
+    estado = relationship("EstadoAsistencia")
