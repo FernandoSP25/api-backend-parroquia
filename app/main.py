@@ -26,7 +26,8 @@ from app.routers import (
     anuncios,
     inscripciones,
     admin,
-    anios_catequeticos
+    anios_catequeticos,
+    dashboard
 )
 
 from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTAR ESTO
@@ -103,3 +104,4 @@ app.include_router(grupos.router, prefix=settings.API_V1_STR)
 app.include_router(eventos.router, prefix=settings.API_V1_STR)
 app.include_router(anios_catequeticos.router, prefix=settings.API_V1_STR)
 app.include_router(asistencias.router, prefix=settings.API_V1_STR)
+app.include_router(dashboard.router, prefix=settings.API_V1_STR)
