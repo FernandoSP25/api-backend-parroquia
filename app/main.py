@@ -84,8 +84,6 @@ def health_check_db(db: Session = Depends(get_db)):
 def root():
     return {"mensaje": "Bienvenido a la API Parroquial v1"}
 
-# --- AQUÍ REGISTRARÁS TUS ROUTERS DESPUÉS ---
-# from routers import users, auth
 
 
 app.include_router(tipo_evento.router, prefix=settings.API_V1_STR)
