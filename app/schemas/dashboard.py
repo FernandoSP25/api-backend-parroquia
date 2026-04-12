@@ -21,3 +21,14 @@ class EventoResumen(BaseModel):
 class DashboardResponse(BaseModel):
     kpis: DashboardKPIs
     proximos_eventos: List[EventoResumen]
+    
+    
+class DashboardCatequistaKPIs(BaseModel):
+    grupo_nombre: str
+    total_jovenes: int
+    asistencia_promedio: float
+    jovenes_en_riesgo: int
+
+class DashboardCatequistaResponse(BaseModel):
+    kpis: DashboardCatequistaKPIs
+    proximos_eventos: List[EventoResumen]
