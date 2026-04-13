@@ -13,6 +13,7 @@ class EventoBase(BaseModel):
     hora_fin: Optional[time] = None
     ubicacion: Optional[str] = Field(None, max_length=200)
     grupo_id: Optional[UUID] = None
+    anio_id: Optional[UUID] = None
     max_asistentes: Optional[int] = None
     requiere_confirmacion: bool = False
     latitud: Optional[float] = None  

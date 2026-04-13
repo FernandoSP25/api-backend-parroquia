@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_  # 👈 Importamos 'or_' para múltiples condiciones
 from fastapi import HTTPException
 from uuid import UUID
 from datetime import datetime, date
@@ -8,11 +9,21 @@ from app.schemas.evento import EventoCreate, EventoUpdate
 class EventoService:
 
     @staticmethod
-    def get_all(db: Session, grupo_id: UUID = None, solo_futuros: bool = False, skip: int = 0, limit: int = 100):
+    def get_all(db: Session, anio_id: UUID = None, grupo_id: UUID = None, solo_futuros: bool = False, skip: int = 0, limit: int = 100):
         query = db.query(Evento).filter(Evento.activo == True)
         
+        # 1. Filtramos por el Año Catequético si se envía
+        if anio_id:
+            query = query.filter(Evento.anio_id == anio_id)
+            
+        # 2. MAGIA AQUÍ: Filtramos eventos específicos de este grupo O globales (NULL)
         if grupo_id:
-            query = query.filter(Evento.grupo_id == grupo_id)
+            query = query.filter(
+                or_(
+                    Evento.grupo_id == grupo_id,
+                    Evento.grupo_id == None
+                )
+            )
             
         if solo_futuros:
             query = query.filter(Evento.fecha >= date.today())
