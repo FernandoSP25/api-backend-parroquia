@@ -42,6 +42,8 @@ class UsuarioOut(UsuarioBase):
     roles: List[str] = [] 
     celular: Optional[str] = None # Este campo se llenará con el validador
 
+    grupo_nombre: Optional[str] = None
+    
     # 1. Validador para Roles (Ya lo tenías)
     @field_validator('roles', mode='before')
     def procesar_roles(cls, v: Any):

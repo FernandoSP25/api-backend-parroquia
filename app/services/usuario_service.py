@@ -13,17 +13,52 @@ from app.models.telefono import Telefono
 from app.models.tipo_telefono import TipoTelefono
 from app.core.security import get_password_hash
 from app.utils.email_generator import generar_email_institucional
-
+from app.models.confirmante import Confirmante
+from app.models.catequista import Catequista
+from app.models.catequista_grupo import CatequistaGrupo
+from app.models.grupo import Grupo
 
 class UsuarioService:
 
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100):
-        return db.query(Usuario).options(
+        # 1. Traemos los usuarios base
+        usuarios = db.query(Usuario).options(
             joinedload(Usuario.roles).joinedload(UsuarioRol.rol),
             joinedload(Usuario.telefonos)   
-        ).order_by(Usuario.created_at.desc()
-        ).offset(skip).limit(limit).all()
+        ).filter(Usuario.deleted_at == None).order_by(Usuario.created_at.desc()).offset(skip).limit(limit).all()
+
+        if not usuarios:
+            return []
+
+        # 2. Extraemos los IDs para buscar sus grupos en bloque (Alta eficiencia)
+        user_ids = [u.id for u in usuarios]
+
+        # 3. Buscamos a qué grupo pertenecen si son Confirmantes
+        conf_grupos = db.query(Confirmante.usuario_id, Grupo.nombre)\
+            .join(Grupo, Confirmante.grupo_id == Grupo.id)\
+            .filter(Confirmante.usuario_id.in_(user_ids), Confirmante.activo == True).all()
+        
+        dict_conf = {u_id: nombre for u_id, nombre in conf_grupos}
+
+        # 4. Buscamos a qué grupo pertenecen si son Catequistas
+        cat_grupos = db.query(Catequista.usuario_id, Grupo.nombre)\
+            .join(CatequistaGrupo, Catequista.id == CatequistaGrupo.catequista_id)\
+            .join(Grupo, CatequistaGrupo.grupo_id == Grupo.id)\
+            .filter(
+                Catequista.usuario_id.in_(user_ids), 
+                Catequista.activo == True, 
+                CatequistaGrupo.activo == True
+            ).all()
+            
+        dict_cat = {u_id: nombre for u_id, nombre in cat_grupos}
+
+        # 5. Asignamos el nombre del grupo a cada usuario
+        for u in usuarios:
+            # Si tiene grupo como confirmante lo toma, si no, busca si tiene como catequista
+            u.grupo_nombre = dict_conf.get(u.id) or dict_cat.get(u.id)
+
+        return usuarios
 
     @staticmethod
     def get_by_id(db: Session, user_id: UUID):
