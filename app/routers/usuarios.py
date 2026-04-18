@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_active_user, RoleChecker
-from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioOut
+from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioOut , PaginatedUsuarios
 from app.services.usuario_service import UsuarioService 
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -41,15 +41,13 @@ def cambiar_mi_password(
     
     return UsuarioService.update(db, current_user, usuario_update)
 
-@router.get("/", response_model=List[UsuarioOut])
-def listar_usuarios(
-    skip: int = 0, 
-    limit: int = 100, 
-    db: Session = Depends(get_db),
-    #current_user = Depends(allow_admin)
+@router.get("/", response_model=PaginatedUsuarios)
+def get_users(
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db)
 ):
-    # 2. CAMBIO AQUÍ: Usamos la Clase
-    return UsuarioService.get_all(db, skip=skip, limit=limit)
+    return UsuarioService.get_all(db, page, page_size)
 
 @router.post("/", response_model=UsuarioOut, status_code=status.HTTP_201_CREATED)
 def crear_usuario(

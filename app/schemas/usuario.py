@@ -60,3 +60,13 @@ class UsuarioOut(UsuarioBase):
 
     class Config:
         from_attributes = True
+        
+class PaginatedUsuarios(BaseModel):
+    items: List[UsuarioOut]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+    class Config:
+        from_attributes = True
