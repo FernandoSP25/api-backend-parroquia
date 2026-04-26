@@ -34,6 +34,7 @@ class EventoUpdate(BaseModel):
     max_asistentes: Optional[int] = None
     requiere_confirmacion: Optional[bool] = None
     activo: Optional[bool] = None
+    anio_id: Optional[UUID] = None
 
 class EventoResponse(EventoBase):
     id: UUID

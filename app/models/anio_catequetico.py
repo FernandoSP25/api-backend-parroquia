@@ -25,3 +25,4 @@ class AnioCatequetico(Base):
     
     # 2. Confirmantes inscritos en este año (historial académico)
     confirmantes = relationship("Confirmante", back_populates="anio")
+    eventos = relationship("Evento", back_populates="anio")

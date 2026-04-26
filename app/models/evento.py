@@ -33,10 +33,14 @@ class Evento(Base):
     
     latitud = Column(Numeric(10, 8), nullable=True)
     longitud = Column(Numeric(11, 8), nullable=True)
+    
+    anio_id = Column(UUID(as_uuid=True), ForeignKey("anios_catequeticos.id"), nullable=True)
     # Relaciones
     tipo = relationship("TipoEvento") 
     grupo = relationship("Grupo", back_populates="eventos")
     creador = relationship("Usuario")
+    anio = relationship("AnioCatequetico", back_populates="eventos")
+    
     
     # Relación con asistencias y QRs
     asistencias = relationship("Asistencia", back_populates="evento")

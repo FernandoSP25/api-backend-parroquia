@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_  # 👈 Importamos 'or_' para múltiples condiciones
+from sqlalchemy import or_  
 from fastapi import HTTPException
 from uuid import UUID
 from datetime import datetime, date
