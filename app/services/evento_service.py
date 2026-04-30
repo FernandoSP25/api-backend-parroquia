@@ -9,14 +9,12 @@ from app.schemas.evento import EventoCreate, EventoUpdate
 class EventoService:
 
     @staticmethod
-    def get_all(db: Session, anio_id: UUID = None, grupo_id: UUID = None, solo_futuros: bool = False, skip: int = 0, limit: int = 100):
+    def get_all(db: Session, anio_id: UUID = None, grupo_id: UUID = None, tipo_id: int = None, solo_futuros: bool = False, skip: int = 0, limit: int = 100):
         query = db.query(Evento).filter(Evento.activo == True)
         
-        # 1. Filtramos por el Año Catequético si se envía
         if anio_id:
             query = query.filter(Evento.anio_id == anio_id)
             
-        # 2. MAGIA AQUÍ: Filtramos eventos específicos de este grupo O globales (NULL)
         if grupo_id:
             query = query.filter(
                 or_(
@@ -25,6 +23,7 @@ class EventoService:
                 )
             )
             
+        # 👇 Ahora Python ya sabrá qué es tipo_id
         if tipo_id:
             query = query.filter(Evento.tipo_id == tipo_id)
         if solo_futuros:

@@ -19,13 +19,13 @@ permitir_modificacion = RoleChecker(["ADMIN", "CATEQUISTA"])
 def listar_eventos(
     anio_id: Optional[UUID] = Query(None, description="Filtrar por Año Catequético"), # 👈 Nuevo
     grupo_id: Optional[UUID] = Query(None, description="Filtrar por Grupo"),
-    solo_futuros: bool = Query(False, description="Mostrar solo eventos desde hoy en adelante"),
+    tipo_id: Optional[int] = Query(None, description="Filtrar por Tipo de Evento"),
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_active_user) 
 ):
-    return EventoService.get_all(db, anio_id, grupo_id, solo_futuros, skip, limit)
+    return EventoService.get_all(db, anio_id, grupo_id, tipo_id, skip, limit)
 
 @router.get("/{evento_id}", response_model=EventoResponse)
 def obtener_evento(
