@@ -25,6 +25,8 @@ class EventoService:
                 )
             )
             
+        if tipo_id:
+            query = query.filter(Evento.tipo_id == tipo_id)
         if solo_futuros:
             query = query.filter(Evento.fecha >= date.today())
             
