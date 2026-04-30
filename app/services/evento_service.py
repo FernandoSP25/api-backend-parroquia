@@ -23,14 +23,18 @@ class EventoService:
                 )
             )
             
-        # 👇 Ahora Python ya sabrá qué es tipo_id
         if tipo_id:
             query = query.filter(Evento.tipo_id == tipo_id)
+            
+        # Lógica de ordenamiento separada
         if solo_futuros:
             query = query.filter(Evento.fecha >= date.today())
-            
-        return query.order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).offset(skip).limit(limit).all()
-
+            # Próximos: del más cercano al más lejano
+            return query.order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).offset(skip).limit(limit).all()
+        else:
+            # Historial: del más reciente al más antiguo (ideal para ver los últimos primero)
+            return query.order_by(Evento.fecha.desc(), Evento.hora_inicio.desc()).offset(skip).limit(limit).all()
+        
     @staticmethod
     def get_by_id(db: Session, evento_id: UUID):
         evento = db.query(Evento).filter(Evento.id == evento_id, Evento.activo == True).first()

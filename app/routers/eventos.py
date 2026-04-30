@@ -15,17 +15,31 @@ router = APIRouter(prefix="/eventos", tags=["Gestión de Eventos"])
 # 2. Definimos quién puede modificar o crear eventos (Seguridad)
 permitir_modificacion = RoleChecker(["ADMIN", "CATEQUISTA"])
 
-@router.get("/", response_model=List[EventoResponse])
-def listar_eventos(
-    anio_id: Optional[UUID] = Query(None, description="Filtrar por Año Catequético"), # 👈 Nuevo
+
+@router.get("/proximos", response_model=List[EventoResponse])
+def listar_proximos(
+    anio_id: Optional[UUID] = Query(None, description="Filtrar por Año Catequético"),
     grupo_id: Optional[UUID] = Query(None, description="Filtrar por Grupo"),
-    tipo_id: Optional[int] = Query(None, description="Filtrar por Tipo de Evento"),
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_active_user) 
 ):
-    return EventoService.get_all(db, anio_id, grupo_id, tipo_id, skip, limit)
+    # Aquí forzamos solo_futuros=True y tipo_id=None
+    return EventoService.get_all(db=db, anio_id=anio_id, grupo_id=grupo_id, tipo_id=None, solo_futuros=True, skip=skip, limit=limit)
+
+@router.get("/historial", response_model=List[EventoResponse])
+def listar_historial(
+    tipo_id: int = Query(..., description="Filtrar por Tipo de Evento (Obligatorio)"),
+    anio_id: Optional[UUID] = Query(None, description="Filtrar por Año Catequético"),
+    grupo_id: Optional[UUID] = Query(None, description="Filtrar por Grupo"),
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user) 
+):
+    # Aquí forzamos solo_futuros=False para que traiga pasados también
+    return EventoService.get_all(db=db, anio_id=anio_id, grupo_id=grupo_id, tipo_id=tipo_id, solo_futuros=False, skip=skip, limit=limit)
 
 @router.get("/{evento_id}", response_model=EventoResponse)
 def obtener_evento(
