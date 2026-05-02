@@ -138,7 +138,7 @@ class AsistenciaService:
                     "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
                     "observaciones": asistencia_previa.observaciones if asistencia_previa else None
                 })
-
+        
         # =================================================================
         # BLOQUE 2: LÓGICA PARA CATEQUISTAS (Si el evento es para ellos o para TODOS)
         # =================================================================
@@ -147,28 +147,50 @@ class AsistenciaService:
                 joinedload(Catequista.usuario)
             ).filter(Catequista.activo == True)
 
-            # Si el evento de catequistas es de un grupo específico, cruzamos con CatequistaGrupo
+            # Si el evento es de un grupo específico, cruzamos con CatequistaGrupo
             if evento.grupo_id:
                 query_cat = query_cat.join(CatequistaGrupo).filter(
                     CatequistaGrupo.grupo_id == evento.grupo_id, 
                     CatequistaGrupo.activo == True
                 )
             
-            # (Opcional) Si quieres que SOLO los Admins puedan pasar lista a Catequistas, descomenta esto:
-            # if not es_admin:
-            #     raise HTTPException(status_code=403, detail="Solo los administradores pueden tomar asistencia a los Catequistas.")
-
             catequistas = query_cat.all()
+
+            # --- MAGIA: Buscar los nombres de los grupos de estos catequistas ---
+            # Creamos un diccionario rápido para no hacer consultas lentas dentro del for
+            dict_grupos_cats = {}
+            if catequistas and not evento.grupo_id:
+                cat_ids = [cat.id for cat in catequistas]
+                from app.models.grupo import Grupo # Asegúrate de importar el modelo
+                
+                # Buscamos a qué grupo pertenece cada catequista activo
+                relaciones = db.query(CatequistaGrupo.catequista_id, Grupo.nombre).join(
+                    Grupo, CatequistaGrupo.grupo_id == Grupo.id
+                ).filter(
+                    CatequistaGrupo.catequista_id.in_(cat_ids),
+                    CatequistaGrupo.activo == True
+                ).all()
+                
+                for rel in relaciones:
+                    dict_grupos_cats[rel.catequista_id] = rel.nombre
 
             for cat in catequistas:
                 asistencia_previa = asistencias_registradas.get(cat.usuario_id)
+                
+                # Si el evento es de un grupo específico, usamos ese nombre. 
+                # Si es general, lo sacamos de nuestro diccionario.
+                if evento.grupo_id and evento.grupo:
+                    nombre_grupo = evento.grupo.nombre
+                else:
+                    nombre_grupo = dict_grupos_cats.get(cat.id, "Sin Grupo")
+
                 checklist.append({
-                    "confirmante_id": str(cat.id), # Usamos el ID del catequista aquí para reutilizar la misma interfaz en Frontend
+                    "confirmante_id": str(cat.id), 
                     "usuario_id": str(cat.usuario_id),
                     "nombres": cat.usuario.nombres,
                     "apellidos": cat.usuario.apellidos,
                     "foto_url": cat.usuario.foto_url,
-                    "grupo_nombre": "Equipo de Catequistas", # Etiqueta visual para distinguirlos
+                    "grupo_nombre": f"{nombre_grupo} (Catequista)", # Le agregamos "(Catequista)" solo para distinguirlo visualmente en la tabla
                     "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
                     "observaciones": asistencia_previa.observaciones if asistencia_previa else None
                 })
