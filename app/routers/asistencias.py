@@ -9,8 +9,12 @@ from app.models.usuario import Usuario
 from app.schemas.asistencia import AsistenciaResponse, AsistenciaBulkRequest
 from app.services.asistencia_service import AsistenciaService
 from app.schemas.asistencia import AlumnoChecklist
+from app.schemas.asistencia import MatrizAsistenciaRow
 
 router = APIRouter(prefix="/asistencias", tags=["Control de Asistencias"])
+# Permisos (A futuro puedes separarlos si lo necesitas)
+permitir_ver_matriz = RoleChecker(["ADMIN", "CATEQUISTA"])
+permitir_ver_catequistas = RoleChecker(["ADMIN"]) # Ejemplo de por qué separarlos es genial
 
 # Control de seguridad: Solo estos roles pueden pasar asistencia
 permitir_asistencia = RoleChecker(["ADMIN", "CATEQUISTA"])
@@ -51,3 +55,24 @@ def obtener_lista_asistencia(
 ):
     """Devuelve la lista de alumnos del catequista con su estado de asistencia actual (o Falta por defecto)"""
     return AsistenciaService.obtener_checklist_evento(db, evento_id, current_user)
+
+@router.get("/matriz/confirmantes/{tipo_evento_id}")
+def obtener_matriz_confirmantes(
+    tipo_evento_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve la matriz de asistencias EXCLUSIVA para los Confirmantes.
+    """
+    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="confirmantes")
+
+
+@router.get("/matriz/catequistas/{tipo_evento_id}")
+def obtener_matriz_catequistas(
+    tipo_evento_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve la matriz de asistencias EXCLUSIVA para los Catequistas.
+    """
+    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="catequistas")

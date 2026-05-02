@@ -48,3 +48,25 @@ class AlumnoChecklist(BaseModel):
 
     class Config:
         from_attributes = True
+    
+class EventoEnMatriz(BaseModel):
+    evento_id: UUID
+    evento_nombre: str
+    evento_fecha: date
+    estado_id: Optional[int] = None      # None = sin registro en ese evento
+    observaciones: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class MatrizAsistenciaRow(BaseModel):
+    confirmante_id: Optional[UUID] = None   # solo en /confirmantes
+    catequista_id: Optional[UUID] = None    # solo en /catequistas
+    usuario_id: UUID
+    nombres: str
+    apellidos: str
+    grupo_nombre: Optional[str] = None
+    eventos: List[EventoEnMatriz]
+
+    class Config:
+        from_attributes = True

@@ -145,3 +145,99 @@ class AsistenciaService:
             })
 
         return checklist
+
+    @staticmethod
+    def obtener_matriz_por_tipo(db: Session, tipo_evento_id: int, modo: str = "confirmantes"):
+        """
+        Genera la matriz de asistencias usando 100% ORM SQLAlchemy.
+        Devuelve exactamente la estructura que el Frontend (React) necesita.
+        """
+        from datetime import date
+        
+        # 1. Traer COLUMNAS: Eventos de este tipo (pasados y de hoy)
+        eventos = db.query(Evento).filter(
+            Evento.tipo_id == tipo_evento_id,
+            Evento.activo == True,
+            Evento.fecha <= date.today()
+        ).order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
+
+        if not eventos:
+            return {"eventos": [], "personas": [], "asistencias": []}
+
+        evento_ids = [e.id for e in eventos]
+
+        # 2. Traer FILAS: Personas (Confirmantes o Catequistas)
+        personas_data = []
+        if modo == "confirmantes":
+            confirmantes = db.query(Confirmante).options(
+                joinedload(Confirmante.usuario),
+                joinedload(Confirmante.grupo)
+            ).filter(Confirmante.activo == True).all()
+            
+            # Ordenar por apellido usando Python
+            confirmantes.sort(key=lambda c: c.usuario.apellidos or "")
+            
+            for c in confirmantes:
+                personas_data.append({
+                    "id": str(c.usuario_id), # Usamos usuario_id para cruzar con Asistencia
+                    "nombres": c.usuario.nombres,
+                    "apellidos": c.usuario.apellidos,
+                    "etiqueta": c.grupo.nombre if c.grupo else "Sin asignar"
+                })
+                
+        elif modo == "catequistas":
+            # Traemos a los catequistas con sus usuarios
+            catequistas = db.query(Catequista).options(
+                joinedload(Catequista.usuario)
+            ).filter(Catequista.activo == True).all()
+            
+            catequistas.sort(key=lambda c: c.usuario.apellidos or "")
+            
+            for cat in catequistas:
+                # Buscamos su grupo principal (opcional)
+                grupo_rel = db.query(CatequistaGrupo).options(joinedload(CatequistaGrupo.grupo)).filter(
+                    CatequistaGrupo.catequista_id == cat.id, 
+                    CatequistaGrupo.activo == True
+                ).first()
+                
+                personas_data.append({
+                    "id": str(cat.usuario_id),
+                    "nombres": cat.usuario.nombres,
+                    "apellidos": cat.usuario.apellidos,
+                    "etiqueta": grupo_rel.grupo.nombre if grupo_rel and grupo_rel.grupo else "Catequista"
+                })
+
+        # 3. Traer INTERSECCIONES: Las asistencias registradas
+        # Solo traemos las asistencias de los eventos que encontramos
+        asistencias_db = db.query(Asistencia).filter(
+            Asistencia.evento_id.in_(evento_ids)
+        ).all()
+
+        # Diccionario traductor de IDs a Textos para el Frontend
+        mapa_estados = {
+            1: "PRESENTE",
+            2: "FALTA",
+            3: "TARDANZA",
+            4: "FALTA_JUSTIFICADA"
+        }
+
+        asistencias_data = []
+        for a in asistencias_db:
+            asistencias_data.append({
+                "personaId": str(a.usuario_id),
+                "eventoId": str(a.evento_id),
+                "estado": mapa_estados.get(a.estado_id, "FALTA") 
+            })
+
+        # 4. Empaquetar y enviar al Frontend
+        return {
+            "eventos": [
+                {
+                    "id": str(e.id), 
+                    "fecha": e.fecha.strftime("%d/%m"), 
+                    "nombre": e.nombre
+                } for e in eventos
+            ],
+            "personas": personas_data,
+            "asistencias": asistencias_data
+        }
