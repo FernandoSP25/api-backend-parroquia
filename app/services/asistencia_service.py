@@ -14,6 +14,7 @@ from sqlalchemy.orm import joinedload
 from app.models.catequista_grupo import CatequistaGrupo
 from app.models.usuario_rol import UsuarioRol
 from app.models.grupo import Grupo
+from datetime import date
 
 class AsistenciaService:
 
@@ -135,6 +136,7 @@ class AsistenciaService:
                     "apellidos": conf.usuario.apellidos,
                     "foto_url": conf.usuario.foto_url,
                     "grupo_nombre": conf.grupo.nombre if conf.grupo else "Sin Grupo",
+                    "rol_persona": "CONFIRMANTE",
                     "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
                     "observaciones": asistencia_previa.observaciones if asistencia_previa else None
                 })
@@ -190,7 +192,8 @@ class AsistenciaService:
                     "nombres": cat.usuario.nombres,
                     "apellidos": cat.usuario.apellidos,
                     "foto_url": cat.usuario.foto_url,
-                    "grupo_nombre": f"{nombre_grupo} (Catequista)", # Le agregamos "(Catequista)" solo para distinguirlo visualmente en la tabla
+                    "grupo_nombre": nombre_grupo ,
+                    "rol_persona": "CATEQUISTA",
                     "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
                     "observaciones": asistencia_previa.observaciones if asistencia_previa else None
                 })
@@ -209,13 +212,14 @@ class AsistenciaService:
         Genera la matriz de asistencias usando 100% ORM SQLAlchemy.
         Devuelve exactamente la estructura que el Frontend (React) necesita.
         """
-        from datetime import date
         
+        filtro_dirigido = ["CONFIRMANTES", "TODOS"] if modo == "confirmantes" else ["CATEQUISTAS", "TODOS"]
         # 1. Traer COLUMNAS: Eventos de este tipo (pasados y de hoy)
         eventos = db.query(Evento).filter(
             Evento.tipo_id == tipo_evento_id,
             Evento.activo == True,
-            Evento.fecha <= date.today()
+            Evento.fecha <= date.today(),
+            Evento.dirigido_a.in_(filtro_dirigido)
         ).order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
 
         if not eventos:
