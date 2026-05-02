@@ -77,7 +77,7 @@ class AsistenciaService:
     
     @staticmethod
     def obtener_checklist_evento(db: Session, evento_id: UUID, current_user: Usuario):
-        """Genera la lista de alumnos para tomar asistencia, filtrando por el rol del usuario"""
+        """Genera la lista de personas para tomar asistencia, respetando el público objetivo (dirigido_a) y filtros de seguridad"""
         
         evento = db.query(Evento).filter(Evento.id == evento_id).first()
         if not evento:
@@ -86,65 +86,100 @@ class AsistenciaService:
         # 1. Determinar si el usuario es ADMIN
         es_admin = any(ur.rol.nombre == "ADMIN" for ur in current_user.roles if ur.activo)
 
-        # 2. Iniciar la consulta base de Confirmantes Activos
-        query = db.query(Confirmante).options(
-            joinedload(Confirmante.usuario),
-            joinedload(Confirmante.grupo)
-        ).filter(Confirmante.activo == True)
-
-        # 3. Lógica de Filtros de Seguridad (Admin vs Catequista)
-        if evento.grupo_id:
-            # A) Es un evento de un GRUPO ESPECÍFICO (ej. Clase Grupo Mateo)
-            query = query.filter(Confirmante.grupo_id == evento.grupo_id)
-            
-            if not es_admin:
-                # Si es catequista, verificar que esté asignado a ese grupo
-                tiene_permiso = db.query(CatequistaGrupo).join(Catequista).filter(
-                    Catequista.usuario_id == current_user.id,
-                    CatequistaGrupo.grupo_id == evento.grupo_id,
-                    CatequistaGrupo.activo == True
-                ).first()
-                if not tiene_permiso:
-                    raise HTTPException(status_code=403, detail="No tienes permisos sobre el grupo de este evento.")
-        else:
-            # B) Es un evento GENERAL (ej. Misa de toda la parroquia)
-            if not es_admin:
-                # El catequista solo debe ver a los confirmantes de SUS grupos
-                grupos_del_catequista = db.query(CatequistaGrupo.grupo_id).join(Catequista).filter(
-                    Catequista.usuario_id == current_user.id,
-                    CatequistaGrupo.activo == True
-                ).subquery()
-                
-                query = query.filter(Confirmante.grupo_id.in_(grupos_del_catequista))
-
-        # Ordenar alfabéticamente por apellidos
-        query = query.join(Usuario, Confirmante.usuario_id == Usuario.id).order_by(Usuario.apellidos.asc())
-        confirmantes = query.all()
-
-        # 4. Obtener las asistencias ya registradas (por si está editando)
+        # 2. Obtener las asistencias ya registradas (por si está editando)
         asistencias_registradas = {
             a.usuario_id: a 
             for a in db.query(Asistencia).filter(Asistencia.evento_id == evento_id).all()
         }
 
-        # 5. Construir la respuesta final cruzando Confirmantes con Asistencias
         checklist = []
-        for conf in confirmantes:
-            asistencia_previa = asistencias_registradas.get(conf.usuario_id)
-            
-            checklist.append({
-                "confirmante_id": conf.id,
-                "usuario_id": conf.usuario_id,
-                "nombres": conf.usuario.nombres,
-                "apellidos": conf.usuario.apellidos,
-                "foto_url": conf.usuario.foto_url,
-                "grupo_nombre": conf.grupo.nombre if conf.grupo else "Sin Grupo",
-                # MAGIA AQUÍ: Si ya le tomaron lista, pone su estado. Si no, pone 3 (Falta por defecto)
-                "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
-                "observaciones": asistencia_previa.observaciones if asistencia_previa else None
-            })
 
-        return checklist
+        # =================================================================
+        # BLOQUE 1: LÓGICA PARA CONFIRMANTES (Si el evento es para ellos o para TODOS)
+        # =================================================================
+        if evento.dirigido_a in ["CONFIRMANTES", "TODOS"]:
+            query_conf = db.query(Confirmante).options(
+                joinedload(Confirmante.usuario),
+                joinedload(Confirmante.grupo)
+            ).filter(Confirmante.activo == True)
+
+            # --- Filtros de Seguridad ---
+            if evento.grupo_id:
+                query_conf = query_conf.filter(Confirmante.grupo_id == evento.grupo_id)
+                
+                if not es_admin:
+                    tiene_permiso = db.query(CatequistaGrupo).join(Catequista).filter(
+                        Catequista.usuario_id == current_user.id,
+                        CatequistaGrupo.grupo_id == evento.grupo_id,
+                        CatequistaGrupo.activo == True
+                    ).first()
+                    if not tiene_permiso:
+                        raise HTTPException(status_code=403, detail="No tienes permisos sobre el grupo de este evento.")
+            else:
+                if not es_admin:
+                    grupos_del_catequista = db.query(CatequistaGrupo.grupo_id).join(Catequista).filter(
+                        Catequista.usuario_id == current_user.id,
+                        CatequistaGrupo.activo == True
+                    ).subquery()
+                    query_conf = query_conf.filter(Confirmante.grupo_id.in_(grupos_del_catequista))
+
+            # Ejecutamos consulta de Confirmantes
+            confirmantes = query_conf.all()
+
+            for conf in confirmantes:
+                asistencia_previa = asistencias_registradas.get(conf.usuario_id)
+                checklist.append({
+                    "confirmante_id": str(conf.id), # Mantenemos esta llave para que tu Frontend React no se rompa
+                    "usuario_id": str(conf.usuario_id),
+                    "nombres": conf.usuario.nombres,
+                    "apellidos": conf.usuario.apellidos,
+                    "foto_url": conf.usuario.foto_url,
+                    "grupo_nombre": conf.grupo.nombre if conf.grupo else "Sin Grupo",
+                    "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
+                    "observaciones": asistencia_previa.observaciones if asistencia_previa else None
+                })
+
+        # =================================================================
+        # BLOQUE 2: LÓGICA PARA CATEQUISTAS (Si el evento es para ellos o para TODOS)
+        # =================================================================
+        if evento.dirigido_a in ["CATEQUISTAS", "TODOS"]:
+            query_cat = db.query(Catequista).options(
+                joinedload(Catequista.usuario)
+            ).filter(Catequista.activo == True)
+
+            # Si el evento de catequistas es de un grupo específico, cruzamos con CatequistaGrupo
+            if evento.grupo_id:
+                query_cat = query_cat.join(CatequistaGrupo).filter(
+                    CatequistaGrupo.grupo_id == evento.grupo_id, 
+                    CatequistaGrupo.activo == True
+                )
+            
+            # (Opcional) Si quieres que SOLO los Admins puedan pasar lista a Catequistas, descomenta esto:
+            # if not es_admin:
+            #     raise HTTPException(status_code=403, detail="Solo los administradores pueden tomar asistencia a los Catequistas.")
+
+            catequistas = query_cat.all()
+
+            for cat in catequistas:
+                asistencia_previa = asistencias_registradas.get(cat.usuario_id)
+                checklist.append({
+                    "confirmante_id": str(cat.id), # Usamos el ID del catequista aquí para reutilizar la misma interfaz en Frontend
+                    "usuario_id": str(cat.usuario_id),
+                    "nombres": cat.usuario.nombres,
+                    "apellidos": cat.usuario.apellidos,
+                    "foto_url": cat.usuario.foto_url,
+                    "grupo_nombre": "Equipo de Catequistas", # Etiqueta visual para distinguirlos
+                    "estado_id": asistencia_previa.estado_id if asistencia_previa else 3,
+                    "observaciones": asistencia_previa.observaciones if asistencia_previa else None
+                })
+
+        # =================================================================
+        # BLOQUE 3: ORDENAR Y RETORNAR
+        # =================================================================
+        # Ordenamos toda la lista combinada alfabéticamente por apellidos
+        checklist_ordenado = sorted(checklist, key=lambda x: x["apellidos"] or "")
+
+        return checklist_ordenado
 
     @staticmethod
     def obtener_matriz_por_tipo(db: Session, tipo_evento_id: int, modo: str = "confirmantes"):
