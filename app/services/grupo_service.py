@@ -203,3 +203,21 @@ class GrupoService:
 
         db.commit()
         return {"message": "Catequista reasignado correctamente"}
+
+    @staticmethod
+    def obtener_grupos_activos(db: Session):
+        from app.models.anio_catequetico import AnioCatequetico
+        from app.models.grupo import Grupo # Asegúrate de que el modelo Grupo esté importado
+
+        # 1. Buscamos cuál es el año activo actualmente
+        anio_activo = db.query(AnioCatequetico).filter(AnioCatequetico.activo == True).first()
+        
+        # Si no hay año activo, no hay grupos que mostrar
+        if not anio_activo:
+            return []
+            
+        # 2. Devolvemos solo los grupos activos de ese año específico
+        return db.query(Grupo).filter(
+            Grupo.anio_id == anio_activo.id, 
+            Grupo.activo == True
+        ).order_by(Grupo.nombre.asc()).all()

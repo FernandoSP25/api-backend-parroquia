@@ -22,6 +22,7 @@ class Evento(Base):
     hora_inicio = Column(Time, nullable=True)
     hora_fin = Column(Time, nullable=True)
     ubicacion = Column(String(200), nullable=True)
+    dirigido_a = Column(String(50), default="TODOS")
     
     max_asistentes = Column(Integer, nullable=True)
     requiere_confirmacion = Column(Boolean, default=False)
@@ -30,10 +31,7 @@ class Evento(Base):
     deleted_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
-    latitud = Column(Numeric(10, 8), nullable=True)
-    longitud = Column(Numeric(11, 8), nullable=True)
-    
+
     anio_id = Column(UUID(as_uuid=True), ForeignKey("anios_catequeticos.id"), nullable=True)
     # Relaciones
     tipo = relationship("TipoEvento") 

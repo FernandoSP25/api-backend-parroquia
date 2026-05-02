@@ -5,6 +5,7 @@ from uuid import UUID
 from datetime import datetime, date
 from app.models.evento import Evento
 from app.schemas.evento import EventoCreate, EventoUpdate
+from app.models.anio_catequetico import AnioCatequetico
 
 class EventoService:
 
@@ -47,6 +48,11 @@ class EventoService:
         # Validar lógica de horas
         if data.hora_inicio and data.hora_fin and data.hora_inicio >= data.hora_fin:
             raise HTTPException(status_code=400, detail="La hora de fin debe ser posterior a la hora de inicio")
+
+        if not data.anio_id:
+            anio_activo = db.query(AnioCatequetico).filter(AnioCatequetico.activo == True).first()
+            if anio_activo:
+                data.anio_id = anio_activo.id
 
         db_evento = Evento(
             **data.model_dump(),

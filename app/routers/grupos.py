@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import Optional
+from typing import Optional,List
 
 from app.dependencies.database import get_db
 from app.schemas.grupo_kanban import TableroGrupos
 from app.services.grupo_service import GrupoService
+from app.schemas.grupo import GrupoResponse
 
 router = APIRouter(prefix="/grupos", tags=["Gestión de Grupos"])
 
@@ -30,3 +31,9 @@ def mover_catequista(
     db: Session = Depends(get_db)
 ):
     return GrupoService.mover_catequista(db, catequista_id, grupo_id)
+
+
+@router.get("/activos", response_model=List[GrupoResponse])
+def listar_grupos_activos(db: Session = Depends(get_db)):
+    """Obtiene los grupos del año catequético que está actualmente activo"""
+    return GrupoService.obtener_grupos_activos(db)

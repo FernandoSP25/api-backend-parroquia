@@ -18,3 +18,11 @@ class GrupoUpdate(BaseModel):
     descripcion: Optional[str] = None
     capacidad_maxima: Optional[int] = None
     activo: Optional[bool] = None
+
+class GrupoResponse(GrupoBase):
+    id: UUID
+    anio_id: UUID
+    activo: bool
+
+    class Config:
+        from_attributes = True # Importante para que lea de SQLAlchemy
