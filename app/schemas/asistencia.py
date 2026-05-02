@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
 from typing import Optional, List
+from datetime import date
 
 # Schema del Catálogo de Estados
 class EstadoAsistenciaSchema(BaseModel):
