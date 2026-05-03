@@ -208,23 +208,28 @@ class AsistenciaService:
 
     @staticmethod
     def obtener_matriz_por_tipo(db: Session, tipo_evento_id: int, modo: str = "confirmantes", grupo_id_filtro: UUID = None):
-        
+        from datetime import date
         filtro_dirigido = ["CONFIRMANTES", "TODOS"] if modo == "confirmantes" else ["CATEQUISTAS", "TODOS"]
-        # 1. Traer COLUMNAS: Eventos de este tipo (pasados y de hoy)
-        eventos = db.query(Evento).filter(
+        
+        # ==========================================
+        # 1. Traer COLUMNAS (Eventos)
+        # ==========================================
+        # 👇 CORRECCIÓN 1: Se llama 'query_eventos' y NO tiene .all() todavía
+        query_eventos = db.query(Evento).filter(
             Evento.tipo_id == tipo_evento_id,
             Evento.activo == True,
             Evento.fecha <= date.today(),
             Evento.dirigido_a.in_(filtro_dirigido)
-        ).order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
+        )
 
-        # 👇 SI HAY FILTRO DE GRUPO, traemos eventos generales + eventos de ese grupo
+        # Si hay filtro de grupo, le agregamos la condición a la consulta "abierta"
         if grupo_id_filtro:
             from sqlalchemy import or_
             query_eventos = query_eventos.filter(
                 or_(Evento.grupo_id == None, Evento.grupo_id == grupo_id_filtro)
             )
 
+        # 👇 Ahora sí, ordenamos y ejecutamos la consulta final
         eventos = query_eventos.order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
 
         if not eventos:
@@ -232,16 +237,23 @@ class AsistenciaService:
 
         evento_ids = [e.id for e in eventos]
 
-        # 2. Traer FILAS: Personas (Confirmantes o Catequistas)
+        # ==========================================
+        # 2. Traer FILAS (Personas)
+        # ==========================================
         personas_data = []
         if modo == "confirmantes":
-            confirmantes = db.query(Confirmante).options(
+            # 👇 CORRECCIÓN 2: Se llama 'query_conf' y NO tiene .all() todavía
+            query_conf = db.query(Confirmante).options(
                 joinedload(Confirmante.usuario),
                 joinedload(Confirmante.grupo)
-            ).filter(Confirmante.activo == True).all()
+            ).filter(Confirmante.activo == True)
             
             if grupo_id_filtro:
                 query_conf = query_conf.filter(Confirmante.grupo_id == grupo_id_filtro)
+                
+            # 👇 Ejecutamos la consulta final
+            confirmantes = query_conf.all()
+            
             # Ordenar por apellido usando Python
             confirmantes.sort(key=lambda c: c.usuario.apellidos or "")
             
@@ -275,7 +287,9 @@ class AsistenciaService:
                     "etiqueta": grupo_rel.grupo.nombre if grupo_rel and grupo_rel.grupo else "Catequista"
                 })
 
-        # 3. Traer INTERSECCIONES: Las asistencias registradas
+        # ==========================================
+        # 3. Traer INTERSECCIONES (Asistencias)
+        # ==========================================
         # Solo traemos las asistencias de los eventos que encontramos
         asistencias_db = db.query(Asistencia).filter(
             Asistencia.evento_id.in_(evento_ids)
@@ -297,7 +311,9 @@ class AsistenciaService:
                 "estado": mapa_estados.get(a.estado_id, "FALTA") 
             })
 
+        # ==========================================
         # 4. Empaquetar y enviar al Frontend
+        # ==========================================
         return {
             "eventos": [
                 {
