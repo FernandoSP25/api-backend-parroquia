@@ -207,11 +207,7 @@ class AsistenciaService:
         return checklist_ordenado
 
     @staticmethod
-    def obtener_matriz_por_tipo(db: Session, tipo_evento_id: int, modo: str = "confirmantes"):
-        """
-        Genera la matriz de asistencias usando 100% ORM SQLAlchemy.
-        Devuelve exactamente la estructura que el Frontend (React) necesita.
-        """
+    def obtener_matriz_por_tipo(db: Session, tipo_evento_id: int, modo: str = "confirmantes", grupo_id_filtro: UUID = None):
         
         filtro_dirigido = ["CONFIRMANTES", "TODOS"] if modo == "confirmantes" else ["CATEQUISTAS", "TODOS"]
         # 1. Traer COLUMNAS: Eventos de este tipo (pasados y de hoy)
@@ -221,6 +217,15 @@ class AsistenciaService:
             Evento.fecha <= date.today(),
             Evento.dirigido_a.in_(filtro_dirigido)
         ).order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
+
+        # 👇 SI HAY FILTRO DE GRUPO, traemos eventos generales + eventos de ese grupo
+        if grupo_id_filtro:
+            from sqlalchemy import or_
+            query_eventos = query_eventos.filter(
+                or_(Evento.grupo_id == None, Evento.grupo_id == grupo_id_filtro)
+            )
+
+        eventos = query_eventos.order_by(Evento.fecha.asc(), Evento.hora_inicio.asc()).all()
 
         if not eventos:
             return {"eventos": [], "personas": [], "asistencias": []}
@@ -235,6 +240,8 @@ class AsistenciaService:
                 joinedload(Confirmante.grupo)
             ).filter(Confirmante.activo == True).all()
             
+            if grupo_id_filtro:
+                query_conf = query_conf.filter(Confirmante.grupo_id == grupo_id_filtro)
             # Ordenar por apellido usando Python
             confirmantes.sort(key=lambda c: c.usuario.apellidos or "")
             

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
+from typing import Optional
+from fastapi import Query
 
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_active_user, RoleChecker
@@ -59,12 +61,13 @@ def obtener_lista_asistencia(
 @router.get("/matriz/confirmantes/{tipo_evento_id}")
 def obtener_matriz_confirmantes(
     tipo_evento_id: int,
+    grupo_id: Optional[UUID] = Query(None, description="Filtrar matriz por un grupo específico"),
     db: Session = Depends(get_db),
 ):
     """
     Devuelve la matriz de asistencias EXCLUSIVA para los Confirmantes.
     """
-    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="confirmantes")
+    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="confirmantes", grupo_id_filtro=grupo_id)
 
 
 @router.get("/matriz/catequistas/{tipo_evento_id}")
