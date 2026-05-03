@@ -73,9 +73,10 @@ def obtener_matriz_confirmantes(
 @router.get("/matriz/catequistas/{tipo_evento_id}")
 def obtener_matriz_catequistas(
     tipo_evento_id: int,
+    grupo_id: Optional[UUID] = Query(None, description="Filtrar matriz por un grupo específico"),
     db: Session = Depends(get_db),
 ):
     """
     Devuelve la matriz de asistencias EXCLUSIVA para los Catequistas.
     """
-    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="catequistas")
+    return AsistenciaService.obtener_matriz_por_tipo(db, tipo_evento_id, modo="catequistas",grupo_id_filtro=grupo_id)
