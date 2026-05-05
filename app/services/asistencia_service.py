@@ -68,10 +68,14 @@ class AsistenciaService:
         
         try:
             db.commit()
-            # Opcional: refrescar la lista si necesitas devolver los datos exactos
         except Exception as e:
             db.rollback()
-            raise HTTPException(status_code=500, detail="Error de base de datos al guardar la asistencia.")
+            error_real = str(e) # Capturamos el error crudo de SQL
+            print("======== ERROR FATAL EN DB ========")
+            print(error_real)
+            print("===================================")
+            # Devolvemos el error real al Frontend para que lo leas en el Network
+            raise HTTPException(status_code=500, detail=f"Error BD: {error_real}")
 
         return asistencias_actualizadas
     
