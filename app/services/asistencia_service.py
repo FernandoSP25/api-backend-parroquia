@@ -218,7 +218,7 @@ class AsistenciaService:
         query_eventos = db.query(Evento).filter(
             Evento.tipo_id == tipo_evento_id,
             Evento.activo == True,
-            Evento.fecha <= date.today(),
+            #Evento.fecha <= date.today(),
             Evento.dirigido_a.in_(filtro_dirigido)
         )
 
