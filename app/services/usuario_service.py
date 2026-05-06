@@ -21,37 +21,15 @@ from app.models.grupo import Grupo
 class UsuarioService:
 
     @staticmethod
-    def get_all(db: Session, page: int = 1, page_size: int = 10):
-
-        # 🔹 Seguridad básica
-        if page < 1:
-            page = 1
-
-        if page_size > 100:
-            page_size = 100
-
-        skip = (page - 1) * page_size
-
-        # 🔹 TOTAL (sin paginación)
-        total = db.query(Usuario).count()
-
-        # 🔹 DATA paginada
+    def get_all(db: Session):
+        # 🔹 DATA COMPLETA (sin paginación)
         usuarios = db.query(Usuario).options(
             joinedload(Usuario.roles).joinedload(UsuarioRol.rol),
             joinedload(Usuario.telefonos)
-        ).order_by(Usuario.created_at.desc())\
-        .offset(skip)\
-        .limit(page_size)\
-        .all()
+        ).order_by(Usuario.created_at.desc()).all()
 
         if not usuarios:
-            return {
-                "items": [],
-                "total": total,
-                "page": page,
-                "page_size": page_size,
-                "pages": 0
-            }
+            return [] # 👈 Solo devolvemos una lista vacía
 
         user_ids = [u.id for u in usuarios]
 
@@ -74,15 +52,8 @@ class UsuarioService:
         for u in usuarios:
             u.grupo_nombre = dict_conf.get(u.id) or dict_cat.get(u.id)
 
-        pages = (total + page_size - 1) // page_size
-
-        return {
-            "items": usuarios,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "pages": pages
-        }
+        # 👈 Devolvemos la lista directa de usuarios
+        return usuarios
 
     @staticmethod
     def get_by_id(db: Session, user_id: UUID):
